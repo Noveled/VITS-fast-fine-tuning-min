@@ -17,55 +17,58 @@ from tqdm import tqdm
 import librosa
 import logging
 
+# 경고 수준으로 설정하여 Numba 로그의 과도한 출력 방지
 logging.getLogger('numba').setLevel(logging.WARNING)
 
 import commons
 import utils
 from data_utils import (
-  TextAudioSpeakerLoader,
-  TextAudioSpeakerCollate,
-  DistributedBucketSampler
+  TextAudioSpeakerLoader, # 텍스트, 오디오, 스피커 데이터 로더
+  TextAudioSpeakerCollate, # 데이터셋 병합
+  DistributedBucketSampler # 분산 학습을 위한 버킷 샘플러
 )
 from models import (
-  SynthesizerTrn,
-  MultiPeriodDiscriminator,
+  SynthesizerTrn, # 음성 합성 모델
+  MultiPeriodDiscriminator, # 다중 기간 판별기
 )
 from losses import (
-  generator_loss,
-  discriminator_loss,
-  feature_loss,
-  kl_loss
+  generator_loss, # 생성기 손실 함수
+  discriminator_loss, # 판별기 손실 함수
+  feature_loss, # 특징 손실 함수
+  kl_loss # KL 다이버전스 손실 함수
 )
-from mel_processing import mel_spectrogram_torch, spec_to_mel_torch
+from mel_processing import mel_spectrogram_torch, spec_to_mel_torch # 멜 스펙트로그램 처리
 
 
-torch.backends.cudnn.benchmark = True
-global_step = 0
+torch.backends.cudnn.benchmark = True # cuDNN의 성능 벤치마크 사용 설정
+global_step = 0 # 전역 학습 단계 변수
 
 
 def main():
   """Assume Single Node Multi GPUs Training Only"""
-  assert torch.cuda.is_available(), "CPU training is not allowed."
+  """싱글 노드에서 여러 GPU를 이용한 학습"""
+  assert torch.cuda.is_available(), "CPU training is not allowed." "CPU 학습은 지원되지 않습니다."
 
-  n_gpus = torch.cuda.device_count()
-  os.environ['MASTER_ADDR'] = 'localhost'
-  os.environ['MASTER_PORT'] = '8000'
+  n_gpus = torch.cuda.device_count() # 사용 가능한 GPU의 수를 확인
+  os.environ['MASTER_ADDR'] = 'localhost' # 분산 학습을 위한 마스터 노드 주소 설정
+  os.environ['MASTER_PORT'] = '8000' # 분산 학습을 위한 포트 설정
 
-  hps = utils.get_hparams()
-  mp.spawn(run, nprocs=n_gpus, args=(n_gpus, hps,))
+  hps = utils.get_hparams() # 하이퍼파라미터를 로드
+  mp.spawn(run, nprocs=n_gpus, args=(n_gpus, hps,)) # 여러 GPU를 사용한 학습 실행
 
 
 def run(rank, n_gpus, hps):
   global global_step
-  symbols = hps['symbols']
+  symbols = hps['symbols'] # 학습에 사용할 심볼 설정
   if rank == 0:
-    logger = utils.get_logger(hps.model_dir)
+    logger = utils.get_logger(hps.model_dir) # 학습 로그 생성
     logger.info(hps)
-    utils.check_git_hash(hps.model_dir)
-    writer = SummaryWriter(log_dir=hps.model_dir)
+    utils.check_git_hash(hps.model_dir) # 모델 디렉토리에 대한 Git 버전 확인
+    writer = SummaryWriter(log_dir=hps.model_dir) # TensorBoard 로그 작성
     writer_eval = SummaryWriter(log_dir=os.path.join(hps.model_dir, "eval"))
 
   # Use gloo backend on Windows for Pytorch
+  # PyTorch 분산 프로세스 그룹 초기화 (Windows에서는 gloo, 다른 OS에서는 nccl 사용)
   dist.init_process_group(backend=  'gloo' if os.name == 'nt' else 'nccl', init_method='env://', world_size=n_gpus, rank=rank)
   torch.manual_seed(hps.train.seed)
   torch.cuda.set_device(rank)
