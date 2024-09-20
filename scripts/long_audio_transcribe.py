@@ -123,3 +123,8 @@ if __name__ == "__main__":
     with open("./long_character_anno.txt", 'w', encoding='utf-8') as f:
         for line in speaker_annos:
             f.write(line)
+
+# 아래는 처리 결과
+# ./segmented_character_voice/masiro/masiro_010_0.wav|masiro|[KO] 안녕하세요 여러분들 깜짝 놀랐죠?[KO]
+# ./segmented_character_voice/masiro/masiro_010_1.wav|masiro|[KO] 시로입니다![KO]
+# ./segmented_character_voice/masiro/masiro_010_2.wav|masiro|[KO] 되게 오랜만이죠?[KO]
