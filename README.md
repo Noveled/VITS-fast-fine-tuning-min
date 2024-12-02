@@ -1,5 +1,10 @@
-# VITS-fast-fine-tuning-MIN
+## (2024/09/09) 이 노트북은[Plachtaa](https://github.com/Plachtaa/VITS-fast-fine-tuning)s 노트북의 약간 수정된 버전입니다.  
+## (09/09/2024) This notebook is a slightly modified version of [HWcomss](https://github.com/HWcomss)'s notebook, it's working fine now. Many thanks!
+
+
+## VITS-fast-fine-tuning-MIN
 VITS-fast-fine-tuning 레포를 내 니즈에 맞춰 번경 중.
+
 
 ### SHORT-TERM - TODO
 - 모델을 파인튜닝하기 위한 데이터셋인 'sampled_audio4ft_v2.zip' 파일을 Hugging Face에서 다운로드합니다.
